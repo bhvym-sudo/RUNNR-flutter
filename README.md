@@ -5,15 +5,15 @@ A production-quality Flutter music streaming app that uses JioSaavn API to provi
 ## Features
 
 ✨ **Core Features:**
-- 🎵 Stream music from JioSaavn API
-- 🔍 Search songs, artists, and albums
-- ❤️ Like/unlike songs with real-time sync across all screens
-- 📚 Library with "Liked Songs" playlist
-- 🎨 Dynamic color theme based on album art
-- 🎧 Background audio playback (works when screen is locked)
-- ⏯️ Full-featured audio player with seek bar, next/previous
-- 📱 Mini player bar with smooth transitions
-- 🏠 Home screen with greeting and trending songs
+- Stream music from JioSaavn API
+- Search songs, artists, and albums
+- Like/unlike songs with real-time sync across all screens
+- Library with "Liked Songs" playlist
+- Dynamic color theme based on album art
+- Background audio playback (works when screen is locked)
+- Full-featured audio player with seek bar, next/previous
+- Mini player bar with smooth transitions
+- Home screen with greeting and trending songs
 
 ## Tech Stack
 
@@ -82,5 +82,3 @@ Follows **MVVM pattern** with:
 - **Original Android App:** RUNNR (Kotlin)
 
 ---
-
-**Built with ❤️ using Flutter**
