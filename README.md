@@ -75,9 +75,6 @@ Follows **MVVM pattern** with:
 - **Providers:** State management
 - **Services:** Business logic and API calls
 
-## Credits
-
-- **Developer:** bhvym-sudo
-- **Original Android App:** RUNNR (Kotlin)
-
----
+## Bugs and fixes
+- Mini player bar takes time to open and start playing song, will be fixed in next version
+- in shuffle mode , the song next in queue plays for brief moment.
