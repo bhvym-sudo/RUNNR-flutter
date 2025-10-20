@@ -50,6 +50,9 @@ dependencies:
   http: ^1.2.2
   cached_network_image: ^3.4.1
   
+  # Permissions
+  permission_handler: ^11.3.1
+  
   # UI utilities
   palette_generator: ^0.3.3+4
   shimmer: ^3.0.0

@@ -3,8 +3,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import 'package:palette_generator/palette_generator.dart';
 import '../providers/player_provider.dart';
-import '../providers/liked_songs_provider.dart';
 import '../services/audio_player_service.dart';
+import '../constants/app_colors.dart';
 
 class FullPlayerScreen extends StatefulWidget {
   const FullPlayerScreen({super.key});
@@ -14,7 +14,7 @@ class FullPlayerScreen extends StatefulWidget {
 }
 
 class _FullPlayerScreenState extends State<FullPlayerScreen> {
-  Color _dominantColor = Colors.purple;
+  Color _dominantColor = AppColors.accentColor;
   bool _isLoadingColor = false;
 
   @override
@@ -43,7 +43,7 @@ class _FullPlayerScreenState extends State<FullPlayerScreen> {
       if (mounted) {
         setState(() {
           _dominantColor =
-              paletteGenerator.dominantColor?.color ?? Colors.purple;
+              paletteGenerator.dominantColor?.color ?? AppColors.accentColor;
           _isLoadingColor = false;
         });
       }
@@ -62,15 +62,12 @@ class _FullPlayerScreenState extends State<FullPlayerScreen> {
   @override
   Widget build(BuildContext context) {
     final playerProvider = Provider.of<PlayerProvider>(context);
-    final likedSongsProvider = Provider.of<LikedSongsProvider>(context);
     final currentSong = playerProvider.currentSong;
 
     if (currentSong == null) {
       Navigator.of(context).pop();
       return const SizedBox.shrink();
     }
-
-    final isLiked = likedSongsProvider.isLiked(currentSong);
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -163,59 +160,28 @@ class _FullPlayerScreenState extends State<FullPlayerScreen> {
                 // Song Info
                 Column(
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                currentSong.title,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                currentSong.subtitle,
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 16,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
+                        Text(
+                          currentSong.title,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
                           ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        IconButton(
-                          icon: Icon(
-                            isLiked ? Icons.favorite : Icons.favorite_border,
-                            color: isLiked ? Colors.green : Colors.white,
-                            size: 32,
+                        const SizedBox(height: 8),
+                        Text(
+                          currentSong.subtitle,
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 16,
                           ),
-                          onPressed: () async {
-                            await likedSongsProvider.toggleLike(currentSong);
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    isLiked
-                                        ? 'Removed from liked songs'
-                                        : 'Added to liked songs',
-                                  ),
-                                  duration: const Duration(seconds: 1),
-                                  backgroundColor: Colors.grey[900],
-                                ),
-                              );
-                            }
-                          },
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
@@ -356,7 +322,7 @@ class _FullPlayerScreenState extends State<FullPlayerScreen> {
                                 : Icons.shuffle,
                           ),
                           color: playerProvider.shuffleMode
-                              ? Colors.green
+                              ? AppColors.accentColor
                               : Colors.white70,
                           iconSize: 28,
                           onPressed: () => playerProvider.toggleShuffleMode(),
@@ -388,7 +354,7 @@ class _FullPlayerScreenState extends State<FullPlayerScreen> {
                           ),
                           color: playerProvider.repeatMode == RepeatMode.off
                               ? Colors.white70
-                              : Colors.green,
+                              : AppColors.accentColor,
                           iconSize: 28,
                           onPressed: () => playerProvider.toggleRepeatMode(),
                         ),

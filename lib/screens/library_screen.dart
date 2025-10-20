@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/liked_songs_provider.dart';
 import '../providers/player_provider.dart';
 import '../widgets/song_tile.dart';
+import '../constants/app_colors.dart';
 
 class LibraryScreen extends StatelessWidget {
   const LibraryScreen({super.key});
@@ -29,7 +30,7 @@ class LibraryScreen extends StatelessWidget {
                     height: 80,
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [Colors.purple, Colors.purple.shade700],
+                        colors: [AppColors.accentColor, AppColors.accentHover],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
@@ -92,7 +93,7 @@ class LibraryScreen extends StatelessWidget {
                       ),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
+                      backgroundColor: AppColors.accentColor,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(

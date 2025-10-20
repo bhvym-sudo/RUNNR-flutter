@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'providers/player_provider.dart';
 import 'providers/liked_songs_provider.dart';
 import 'screens/home_screen.dart';
@@ -8,15 +9,20 @@ import 'screens/search_screen.dart';
 import 'screens/library_screen.dart';
 import 'widgets/mini_player.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Request notification permission for Android 13+
+  if (await Permission.notification.isDenied) {
+    await Permission.notification.request();
+  }
 
   // Set system UI overlay style
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.light,
-      systemNavigationBarColor: Colors.black,
+      systemNavigationBarColor: Color(0xFF1E202E), // davysGray
       systemNavigationBarIconBrightness: Brightness.light,
     ),
   );
@@ -26,6 +32,15 @@ void main() {
 
 class RunnrApp extends StatelessWidget {
   const RunnrApp({super.key});
+
+  // RUNNR Color Palette
+  static const Color night = Color(0xFF000000); // #000000
+  static const Color eerieBlack = Color(0xFF0A0A0D); // #0a0a0d
+  static const Color darkerBg = Color(0xFF08080B); // #08080b
+  static const Color davysGray = Color(0xFF1E202E); // #1e202e
+  static const Color cardBg = Color(0xFF1E202E); // #1e202e
+  static const Color accentColor = Color(0xFF3D59A1); // #3d59a1
+  static const Color accentHover = Color(0xFF4A6BB5); // #4a6bb5
 
   @override
   Widget build(BuildContext context) {
@@ -42,29 +57,42 @@ class RunnrApp extends StatelessWidget {
         theme: ThemeData(
           useMaterial3: true,
           brightness: Brightness.dark,
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.green,
-            brightness: Brightness.dark,
+          colorScheme: ColorScheme.dark(
+            primary: accentColor,
+            secondary: accentHover,
+            surface: cardBg,
+            background: night,
+            onPrimary: Colors.white,
+            onSecondary: Colors.white,
+            onSurface: Colors.white,
+            onBackground: Colors.white,
           ),
-          scaffoldBackgroundColor: Colors.black,
+          scaffoldBackgroundColor: night,
           appBarTheme: const AppBarTheme(
-            backgroundColor: Colors.black,
+            backgroundColor: eerieBlack,
             foregroundColor: Colors.white,
             elevation: 0,
           ),
           cardTheme: CardThemeData(
-            color: Colors.grey[900],
+            color: cardBg,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
           ),
-          bottomNavigationBarTheme: BottomNavigationBarThemeData(
-            backgroundColor: Colors.grey[900],
-            selectedItemColor: Colors.green,
-            unselectedItemColor: Colors.grey[600],
+          bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+            backgroundColor: davysGray,
+            selectedItemColor: accentColor,
+            unselectedItemColor: Color(0xFF6B6B7B),
             type: BottomNavigationBarType.fixed,
             elevation: 8,
           ),
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: accentColor,
+              foregroundColor: Colors.white,
+            ),
+          ),
+          iconTheme: const IconThemeData(color: Colors.white70),
         ),
         home: const MainScreen(),
       ),
@@ -109,10 +137,10 @@ class _MainScreenState extends State<MainScreen> {
                   const MiniPlayer(),
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.grey[900],
+                      color: const Color(0xFF1E202E), // davysGray
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.3),
+                          color: Colors.black.withOpacity(0.5),
                           blurRadius: 8,
                           offset: const Offset(0, -2),
                         ),

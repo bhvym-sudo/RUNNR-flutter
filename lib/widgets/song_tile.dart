@@ -3,6 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import '../models/song_model.dart';
 import '../providers/liked_songs_provider.dart';
+import '../constants/app_colors.dart';
 
 class SongTile extends StatelessWidget {
   final SongModel song;
@@ -64,7 +65,7 @@ class SongTile extends StatelessWidget {
           ? IconButton(
               icon: Icon(
                 isLiked ? Icons.favorite : Icons.favorite_border,
-                color: isLiked ? Colors.green : Colors.white70,
+                color: isLiked ? AppColors.likeColor : Colors.white70,
               ),
               onPressed: () async {
                 try {

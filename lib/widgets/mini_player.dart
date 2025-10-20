@@ -3,6 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import '../providers/player_provider.dart';
 import '../screens/full_player_screen.dart';
+import '../constants/app_colors.dart';
 
 class MiniPlayer extends StatelessWidget {
   const MiniPlayer({super.key});
@@ -45,7 +46,9 @@ class MiniPlayer extends StatelessWidget {
                           playerProvider.duration.inMilliseconds
                     : 0,
                 backgroundColor: Colors.grey[800],
-                valueColor: const AlwaysStoppedAnimation<Color>(Colors.green),
+                valueColor: const AlwaysStoppedAnimation<Color>(
+                  AppColors.accentColor,
+                ),
               ),
             ),
             // Player content

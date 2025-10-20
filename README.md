@@ -77,7 +77,6 @@ Follows **MVVM pattern** with:
 
 ## Credits
 
-- **Music API:** JioSaavn
 - **Developer:** bhvym-sudo
 - **Original Android App:** RUNNR (Kotlin)
 

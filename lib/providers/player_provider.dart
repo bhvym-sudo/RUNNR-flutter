@@ -106,8 +106,8 @@ class PlayerProvider extends ChangeNotifier {
   }
 
   /// Toggle shuffle mode
-  void toggleShuffleMode() {
-    _audioService.toggleShuffleMode();
+  Future<void> toggleShuffleMode() async {
+    await _audioService.toggleShuffleMode();
     notifyListeners();
   }
 
