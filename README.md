@@ -37,14 +37,6 @@ A production-quality Flutter music streaming app that uses JioSaavn API to provi
    flutter run
    ```
 
-## API Integration
-
-The app uses JioSaavn's public API with proper headers as specified in the Android Kotlin version.
-
-### Key Endpoints:
-- **Search:** `https://www.jiosaavn.com/api.php?__call=search.getResults`
-- **Stream URL:** `https://www.jiosaavn.com/api.php?__call=song.generateAuthToken`
-
 ## Key Features
 
 ### 1. Background Playback
