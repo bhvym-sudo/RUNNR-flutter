@@ -3,7 +3,7 @@
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:drawable="@color/splash_background" />
 
-    <!-- You can insert your own image assets here -->
+    <!-- RUNNR logo with black background -->
     <item>
         <bitmap
             android:gravity="center"

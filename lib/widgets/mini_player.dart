@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import '../providers/player_provider.dart';
+import '../providers/liked_songs_provider.dart';
 import '../screens/full_player_screen.dart';
 import '../constants/app_colors.dart';
 
@@ -11,11 +12,14 @@ class MiniPlayer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final playerProvider = Provider.of<PlayerProvider>(context);
+    final likedSongsProvider = Provider.of<LikedSongsProvider>(context);
     final currentSong = playerProvider.currentSong;
 
     if (currentSong == null) {
       return const SizedBox.shrink();
     }
+
+    final isLiked = likedSongsProvider.isLiked(currentSong);
 
     return GestureDetector(
       onTap: () {
@@ -119,6 +123,17 @@ class MiniPlayer extends StatelessWidget {
                           ),
                         ],
                       ),
+                    ),
+                    // Like button
+                    IconButton(
+                      icon: Icon(
+                        isLiked ? Icons.favorite : Icons.favorite_border,
+                        color: isLiked ? AppColors.likeColor : Colors.white70,
+                        size: 24,
+                      ),
+                      onPressed: () async {
+                        await likedSongsProvider.toggleLike(currentSong);
+                      },
                     ),
                     // Play/pause button
                     IconButton(

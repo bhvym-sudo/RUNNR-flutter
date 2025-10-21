@@ -61,8 +61,6 @@ class AudioPlayerService {
     if (_isInitialized) return;
 
     try {
-      print('🎵 Initializing Audio Service...');
-
       // Initialize audio handler for background playback & notifications
       _audioHandler = await AudioService.init(
         builder: () => AudioPlayerHandler(this),
@@ -79,7 +77,6 @@ class AudioPlayerService {
       // Listen to playback completion for autoplay
       _audioPlayer.playerStateStream.listen((state) {
         if (state.processingState == ProcessingState.completed) {
-          print('🎵 Song completed, triggering autoplay...');
           _handleSongCompletion();
         }
       });
@@ -89,16 +86,14 @@ class AudioPlayerService {
         if (index != null &&
             index != _currentIndex &&
             index < _playlist.length) {
-          print('🎵 Track changed to index: $index');
           _currentIndex = index;
           _notifyUIAndUpdateNotification();
         }
       });
 
       _isInitialized = true;
-      print('✅ Audio Service initialized successfully');
     } catch (e) {
-      print('❌ Error initializing audio service: $e');
+      // Initialization failed
     }
   }
 
@@ -109,27 +104,30 @@ class AudioPlayerService {
     int? index,
   }) async {
     try {
-      print('🎵 Playing song: ${song.title}');
-
+      // Update state immediately for instant UI feedback
       if (playlist != null && playlist.isNotEmpty) {
-        // Playing with queue
-        _playlist = playlist;
+        // CRITICAL: Create a COPY of the playlist to avoid reference issues
+        // If we don't copy, modifications to the original list (like unliking songs)
+        // will directly modify our _playlist, causing wrong song details to show
+        _playlist = List.from(playlist);
         _originalPlaylist = List.from(playlist);
         _currentIndex = index ?? 0;
-
-        await _loadPlaylistAsQueue();
       } else {
-        // Single song playback
         _playlist = [song];
         _originalPlaylist = [song];
         _currentIndex = 0;
-
-        await _playSingleSong(song);
       }
 
+      // Notify UI immediately (before loading)
       _notifyUIAndUpdateNotification();
+
+      // Now load and play
+      if (playlist != null && playlist.isNotEmpty) {
+        await _loadPlaylistAsQueue();
+      } else {
+        await _playSingleSong(song);
+      }
     } catch (e) {
-      print('❌ Error playing song: $e');
       rethrow;
     }
   }
@@ -137,11 +135,11 @@ class AudioPlayerService {
   /// Load entire playlist as queue (enables autoplay)
   Future<void> _loadPlaylistAsQueue() async {
     try {
-      print('🎵 Loading playlist with ${_playlist.length} songs...');
       final audioSources = <AudioSource>[];
 
-      // Load stream URLs for all songs
-      for (var song in _playlist) {
+      // Load stream URLs for all songs in order
+      for (var i = 0; i < _playlist.length; i++) {
+        final song = _playlist[i];
         final streamUrl = await JioSaavnService.getStreamUrl(
           song.encryptedMediaUrl,
         );
@@ -157,7 +155,7 @@ class AudioPlayerService {
                 'Origin': 'https://www.jiosaavn.com',
                 'Accept': '*/*',
               },
-              tag: song, // Attach song metadata
+              tag: song,
             ),
           );
         }
@@ -167,20 +165,20 @@ class AudioPlayerService {
         // Create concatenating source (queue)
         final concatenating = ConcatenatingAudioSource(children: audioSources);
 
-        // Set audio source with initial index
+        // Make sure currentIndex is valid
+        final validIndex = _currentIndex.clamp(0, audioSources.length - 1);
+
+        // Set audio source with correct initial index
         await _audioPlayer.setAudioSource(
           concatenating,
-          initialIndex: _currentIndex,
+          initialIndex: validIndex,
           initialPosition: Duration.zero,
         );
 
         // Start playback
         await _audioPlayer.play();
-
-        print('✅ Playlist loaded and playing');
       }
     } catch (e) {
-      print('❌ Error loading playlist: $e');
       rethrow;
     }
   }
@@ -214,13 +212,8 @@ class AudioPlayerService {
 
   /// Handle song completion for autoplay
   Future<void> _handleSongCompletion() async {
-    print(
-      '🎵 Handling song completion. Current index: $_currentIndex, Playlist length: ${_playlist.length}',
-    );
-
     // RepeatOne mode - loop current song
     if (_repeatMode == RepeatMode.one) {
-      print('🔁 Repeat One: Looping current song');
       await _audioPlayer.seek(Duration.zero);
       await _audioPlayer.play();
       return;
@@ -229,20 +222,16 @@ class AudioPlayerService {
     // Check if we can play next
     if (_audioPlayer.hasNext) {
       // Let just_audio handle it automatically
-      print('⏭️ Auto-playing next song in queue');
       return;
     }
 
     // At end of queue
     if (_repeatMode == RepeatMode.playlist) {
       // Loop back to start
-      print('🔁 Repeat Playlist: Looping to start');
       await _audioPlayer.seek(Duration.zero, index: 0);
       _currentIndex = 0;
       await _audioPlayer.play();
       _notifyUIAndUpdateNotification();
-    } else {
-      print('⏹️ Playlist ended');
     }
   }
 
@@ -259,7 +248,16 @@ class AudioPlayerService {
   Future<void> playNext() async {
     if (_playlist.isEmpty) return;
 
-    print('⏭️ Next button pressed');
+    print(
+      '⏭️ Next button pressed. Repeat: $_repeatMode, Shuffle: $_shuffleMode',
+    );
+
+    // If repeat one is enabled, just restart the current song
+    if (_repeatMode == RepeatMode.one) {
+      await _audioPlayer.seek(Duration.zero);
+      await _audioPlayer.play();
+      return;
+    }
 
     if (_audioPlayer.hasNext) {
       await _audioPlayer.seekToNext();
@@ -277,17 +275,26 @@ class AudioPlayerService {
   Future<void> playPrevious() async {
     if (_playlist.isEmpty) return;
 
-    print('⏮️ Previous button pressed');
+    // Check current position
+    final currentPosition = _audioPlayer.position;
 
-    if (_audioPlayer.hasPrevious) {
-      await _audioPlayer.seekToPrevious();
-      _currentIndex = _audioPlayer.currentIndex ?? _currentIndex;
+    // If played for more than 5 seconds, restart current song
+    if (currentPosition.inSeconds >= 5) {
+      await _audioPlayer.seek(Duration.zero);
+      return;
+    }
+
+    // If played for less than 5 seconds, go to actual previous song
+    if (_currentIndex > 0) {
+      // There's a previous song, go to it
+      _currentIndex--;
+      await _audioPlayer.seek(Duration.zero, index: _currentIndex);
       _notifyUIAndUpdateNotification();
-    } else if (_repeatMode == RepeatMode.playlist) {
-      // Wrap to end
+    } else {
+      // At first song, wrap to last song
       final lastIndex = _playlist.length - 1;
-      await _audioPlayer.seek(Duration.zero, index: lastIndex);
       _currentIndex = lastIndex;
+      await _audioPlayer.seek(Duration.zero, index: lastIndex);
       _notifyUIAndUpdateNotification();
     }
   }
@@ -296,8 +303,6 @@ class AudioPlayerService {
   void _notifyUIAndUpdateNotification() {
     final song = currentSong;
     if (song != null) {
-      print('🔄 Updating UI and notification for: ${song.title}');
-
       // Update notification
       _audioHandler?.setMediaItem(song);
 
@@ -320,13 +325,11 @@ class AudioPlayerService {
         break;
     }
     _updateLoopMode();
-    print('🔁 Repeat mode changed to: $_repeatMode');
   }
 
   /// Toggle shuffle mode
   Future<void> toggleShuffleMode() async {
     _shuffleMode = !_shuffleMode;
-    print('🔀 Shuffle mode: $_shuffleMode');
 
     // Get current song and position
     final currentSong = _playlist[_currentIndex];
@@ -404,10 +407,9 @@ class AudioPlayerService {
         }
 
         _notifyUIAndUpdateNotification();
-        print('✅ Queue rebuilt successfully');
       }
     } catch (e) {
-      print('❌ Error rebuilding queue: $e');
+      // Error rebuilding queue
     }
   }
 
@@ -443,12 +445,40 @@ class AudioPlayerService {
 
   /// Update playlist (when songs are liked/unliked)
   void updatePlaylist(List<SongModel> newPlaylist) {
+    // Store the currently playing song
+    final currentlyPlayingSong = currentSong;
+
     _playlist = newPlaylist;
     _originalPlaylist = List.from(newPlaylist);
 
-    if (_currentIndex >= _playlist.length && _playlist.isNotEmpty) {
-      _currentIndex = _playlist.length - 1;
+    // Find the index of the currently playing song in the new playlist
+    if (currentlyPlayingSong != null) {
+      final newIndex = _playlist.indexWhere(
+        (song) =>
+            song.encryptedMediaUrl == currentlyPlayingSong.encryptedMediaUrl,
+      );
+
+      if (newIndex != -1) {
+        // Song is still in the playlist
+        _currentIndex = newIndex;
+      } else {
+        // Song was removed from playlist
+        // Adjust current index if needed
+        if (_currentIndex >= _playlist.length && _playlist.isNotEmpty) {
+          _currentIndex = _playlist.length - 1;
+        } else if (_playlist.isEmpty) {
+          _currentIndex = 0;
+        }
+      }
+    } else {
+      // No current song, adjust index if needed
+      if (_currentIndex >= _playlist.length && _playlist.isNotEmpty) {
+        _currentIndex = _playlist.length - 1;
+      }
     }
+
+    // Notify UI of the update (important!)
+    _notifyUIAndUpdateNotification();
   }
 
   /// Check if has next song
@@ -475,8 +505,6 @@ class AudioPlayerHandler extends BaseAudioHandler {
   final AudioPlayerService _service;
 
   AudioPlayerHandler(this._service) {
-    print('🎵 AudioPlayerHandler created');
-
     // Initialize playback state
     playbackState.add(
       PlaybackState(
@@ -548,7 +576,6 @@ class AudioPlayerHandler extends BaseAudioHandler {
 
   /// Update media item (notification metadata)
   void setMediaItem(SongModel song) {
-    print('🔔 Updating notification: ${song.title}');
     mediaItem.add(
       MediaItem(
         id: song.encryptedMediaUrl,
@@ -563,37 +590,31 @@ class AudioPlayerHandler extends BaseAudioHandler {
   // Override media controls
   @override
   Future<void> play() async {
-    print('🎵 Notification: Play');
     await _service._audioPlayer.play();
   }
 
   @override
   Future<void> pause() async {
-    print('⏸️ Notification: Pause');
     await _service._audioPlayer.pause();
   }
 
   @override
   Future<void> seek(Duration position) async {
-    print('⏩ Notification: Seek to $position');
     await _service._audioPlayer.seek(position);
   }
 
   @override
   Future<void> skipToNext() async {
-    print('⏭️ Notification: Skip to next');
     await _service.playNext();
   }
 
   @override
   Future<void> skipToPrevious() async {
-    print('⏮️ Notification: Skip to previous');
     await _service.playPrevious();
   }
 
   @override
   Future<void> stop() async {
-    print('⏹️ Notification: Stop');
     await _service._audioPlayer.stop();
     await super.stop();
   }

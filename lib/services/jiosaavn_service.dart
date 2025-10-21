@@ -53,7 +53,6 @@ class JioSaavnService {
         throw Exception('Failed to search songs: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error searching songs: $e');
       rethrow;
     }
     return [];
@@ -91,7 +90,6 @@ class JioSaavnService {
         throw Exception('Failed to get stream URL: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error getting stream URL: $e');
       rethrow;
     }
   }
@@ -102,7 +100,6 @@ class JioSaavnService {
       // Using popular search terms to get trending content
       return await searchSongs('trending hindi');
     } catch (e) {
-      print('Error getting trending songs: $e');
       return [];
     }
   }
@@ -128,7 +125,7 @@ class JioSaavnService {
         }
       }
     } catch (e) {
-      print('Error getting album songs: $e');
+      // Error getting album songs
     }
     return [];
   }

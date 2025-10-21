@@ -18,7 +18,7 @@ class LikedSongsProvider extends ChangeNotifier {
     try {
       _likedSongs = await LikedSongsService.getLikedSongs();
     } catch (e) {
-      print('Error loading liked songs: $e');
+      // Failed to load liked songs
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -50,7 +50,6 @@ class LikedSongsProvider extends ChangeNotifier {
       notifyListeners();
       return !isCurrentlyLiked; // Return new like status
     } catch (e) {
-      print('Error toggling like: $e');
       rethrow;
     }
   }
@@ -63,7 +62,6 @@ class LikedSongsProvider extends ChangeNotifier {
         _likedSongs.add(song);
         notifyListeners();
       } catch (e) {
-        print('Error adding song: $e');
         rethrow;
       }
     }
@@ -78,7 +76,6 @@ class LikedSongsProvider extends ChangeNotifier {
       );
       notifyListeners();
     } catch (e) {
-      print('Error removing song: $e');
       rethrow;
     }
   }
@@ -90,7 +87,6 @@ class LikedSongsProvider extends ChangeNotifier {
       _likedSongs.clear();
       notifyListeners();
     } catch (e) {
-      print('Error clearing liked songs: $e');
       rethrow;
     }
   }

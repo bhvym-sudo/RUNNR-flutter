@@ -33,7 +33,6 @@ class LikedSongsService {
 
       return jsonData.map((item) => SongModel.fromJson(item)).toList();
     } catch (e) {
-      print('Error getting liked songs: $e');
       return [];
     }
   }
@@ -49,7 +48,6 @@ class LikedSongsService {
         await _saveSongs(songs);
       }
     } catch (e) {
-      print('Error adding song: $e');
       rethrow;
     }
   }
@@ -61,7 +59,6 @@ class LikedSongsService {
       songs.removeWhere((s) => s.encryptedMediaUrl == song.encryptedMediaUrl);
       await _saveSongs(songs);
     } catch (e) {
-      print('Error removing song: $e');
       rethrow;
     }
   }
@@ -72,7 +69,6 @@ class LikedSongsService {
       final songs = await getLikedSongs();
       return songs.any((s) => s.encryptedMediaUrl == song.encryptedMediaUrl);
     } catch (e) {
-      print('Error checking if song is liked: $e');
       return false;
     }
   }
@@ -90,7 +86,6 @@ class LikedSongsService {
         return true;
       }
     } catch (e) {
-      print('Error toggling like: $e');
       rethrow;
     }
   }
@@ -102,7 +97,6 @@ class LikedSongsService {
       final jsonData = songs.map((song) => song.toJson()).toList();
       await file.writeAsString(json.encode(jsonData));
     } catch (e) {
-      print('Error saving songs: $e');
       rethrow;
     }
   }
@@ -112,7 +106,6 @@ class LikedSongsService {
     try {
       await _saveSongs([]);
     } catch (e) {
-      print('Error clearing liked songs: $e');
       rethrow;
     }
   }
@@ -123,7 +116,6 @@ class LikedSongsService {
       final songs = await getLikedSongs();
       return songs.length;
     } catch (e) {
-      print('Error getting liked count: $e');
       return 0;
     }
   }

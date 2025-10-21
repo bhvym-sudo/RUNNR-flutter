@@ -16,6 +16,7 @@ class FullPlayerScreen extends StatefulWidget {
 class _FullPlayerScreenState extends State<FullPlayerScreen> {
   Color _dominantColor = AppColors.accentColor;
   bool _isLoadingColor = false;
+  String? _lastSongId; // Track last song to detect changes
 
   @override
   void initState() {
@@ -30,7 +31,19 @@ class _FullPlayerScreenState extends State<FullPlayerScreen> {
     final playerProvider = Provider.of<PlayerProvider>(context, listen: false);
     final currentSong = playerProvider.currentSong;
 
-    if (currentSong == null) return;
+    if (currentSong == null) {
+      _isLoadingColor = false;
+      return;
+    }
+
+    // Check if this is the same song
+    if (_lastSongId == currentSong.encryptedMediaUrl) {
+      _isLoadingColor = false;
+      return;
+    }
+
+    // Update last song ID
+    _lastSongId = currentSong.encryptedMediaUrl;
 
     try {
       final imageProvider = CachedNetworkImageProvider(
@@ -48,8 +61,11 @@ class _FullPlayerScreenState extends State<FullPlayerScreen> {
         });
       }
     } catch (e) {
-      print('Error extracting color: $e');
-      _isLoadingColor = false;
+      if (mounted) {
+        setState(() {
+          _isLoadingColor = false;
+        });
+      }
     }
   }
 
@@ -67,6 +83,14 @@ class _FullPlayerScreenState extends State<FullPlayerScreen> {
     if (currentSong == null) {
       Navigator.of(context).pop();
       return const SizedBox.shrink();
+    }
+
+    // Check if song changed and update background color
+    if (currentSong.encryptedMediaUrl != _lastSongId) {
+      // Use post frame callback to avoid calling setState during build
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _extractDominantColor();
+      });
     }
 
     return Scaffold(

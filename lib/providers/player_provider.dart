@@ -31,6 +31,12 @@ class PlayerProvider extends ChangeNotifier {
       _duration = duration ?? Duration.zero;
       notifyListeners();
     });
+
+    // Listen to current song changes
+    _audioService.currentSongStream.listen((song) {
+      // Notify listeners when song changes (for UI updates like background color)
+      notifyListeners();
+    });
   }
 
   // Getters
@@ -55,7 +61,6 @@ class PlayerProvider extends ChangeNotifier {
       await _audioService.playSong(song, playlist: playlist, index: index);
       notifyListeners();
     } catch (e) {
-      print('Error in PlayerProvider.playSong: $e');
       rethrow;
     }
   }

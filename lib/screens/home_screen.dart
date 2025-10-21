@@ -13,16 +13,27 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final List<Map<String, dynamic>> _changelog = [
     {
+      'version': 'v1.1.0',
+      'date': 'October 2025',
+      'changes': [
+        'Fixed unlike button showing wrong song details',
+        'Improved app performance by removing debug logs',
+        'Enhanced splash screen logo visibility with black background',
+        'Fixed previous button with 5-second threshold logic',
+        'Optimized background color extraction in full player',
+      ],
+    },
+    {
       'version': 'v1.0.0',
       'date': 'October 2025',
       'changes': [
-        '🎵 Complete audio player with queue management',
-        '🔀 Shuffle and repeat modes',
-        '📱 Background playback with notifications',
-        '❤️ Like songs and create library',
-        '⏭️ Navigation controls (previous/next)',
-        '🎨 Custom RUNNR color palette',
-        '🚀 Smooth animations and UI polish',
+        'Complete audio player with queue management',
+        'Shuffle and repeat modes',
+        'Background playback with notifications',
+        'Like songs and create library',
+        'Navigation controls (previous/next)',
+        'Custom RUNNR color palette',
+        'Smooth animations and UI polish',
       ],
     },
   ];
