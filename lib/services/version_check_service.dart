@@ -1,10 +1,12 @@
+import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 
 /// Service to check for app updates
 class VersionCheckService {
+  // Use GitHub API instead of raw URL for instant updates (no CDN cache)
   static const String _versionUrl =
-      'https://raw.githubusercontent.com/bhvym-sudo/RUNNR-flutter/refs/heads/main/version.txt';
+      'https://api.github.com/repos/bhvym-sudo/RUNNR-flutter/contents/version.txt';
 
   /// Get current app version
   static Future<String> getCurrentVersion() async {
@@ -16,42 +18,38 @@ class VersionCheckService {
     }
   }
 
-  /// Fetch latest version from GitHub
+  /// Fetch latest version from GitHub API (instant, no cache)
   static Future<String?> getLatestVersion() async {
     try {
-      // Add cache-busting query parameter with random value
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final random = DateTime.now().microsecondsSinceEpoch;
-      final url = Uri.parse('$_versionUrl?cache=$timestamp&r=$random');
+      final url = Uri.parse('$_versionUrl?ref=main&t=$timestamp');
 
-      print('Fetching from URL: $url');
+      print('Fetching from GitHub API: $url');
 
-      // Create a fresh client to avoid caching
-      final client = http.Client();
-      try {
-        final response = await client
-            .get(
-              url,
-              headers: {
-                'Cache-Control': 'no-cache, no-store, must-revalidate',
-                'Pragma': 'no-cache',
-                'Expires': '0',
-              },
-            )
-            .timeout(const Duration(seconds: 10));
+      final response = await http
+          .get(
+            url,
+            headers: {
+              'Accept': 'application/vnd.github.v3+json',
+              'Cache-Control': 'no-cache',
+            },
+          )
+          .timeout(const Duration(seconds: 10));
 
-        if (response.statusCode == 200) {
-          final version = response.body.trim();
-          print('Fetched version from GitHub: $version');
-          print('Response length: ${response.body.length}');
-          return version;
-        } else {
-          print('HTTP error: ${response.statusCode}');
-        }
-        return null;
-      } finally {
-        client.close();
+      if (response.statusCode == 200) {
+        // GitHub API returns base64 encoded content
+        final jsonData = json.decode(response.body);
+        final base64Content = jsonData['content'] as String;
+        // Remove newlines from base64 string
+        final cleanBase64 = base64Content.replaceAll('\n', '');
+        final decodedBytes = base64.decode(cleanBase64);
+        final version = utf8.decode(decodedBytes).trim();
+        print('Decoded version from GitHub API: $version');
+        return version;
+      } else {
+        print('HTTP error: ${response.statusCode}');
       }
+      return null;
     } catch (e) {
       print('Error fetching version: $e');
       return null;
