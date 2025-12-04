@@ -81,8 +81,23 @@ class AudioPlayerService {
         }
       });
 
-      // Note: We don't listen to currentIndexStream because our queue
-      // is built dynamically and indices don't match playlist indices
+      // Listen to sequence state to detect when song actually changes
+      _audioPlayer.sequenceStateStream.listen((sequenceState) {
+        if (sequenceState != null && sequenceState.currentSource?.tag != null) {
+          final taggedSong = sequenceState.currentSource!.tag as SongModel;
+          // Find this song in our playlist and update index
+          for (int i = 0; i < _playlist.length; i++) {
+            if (_playlist[i].encryptedMediaUrl ==
+                taggedSong.encryptedMediaUrl) {
+              if (_currentIndex != i) {
+                _currentIndex = i;
+                _notifyUIAndUpdateNotification();
+              }
+              break;
+            }
+          }
+        }
+      });
 
       _isInitialized = true;
     } catch (e) {
@@ -341,6 +356,7 @@ class AudioPlayerService {
     // Check if we can play next
     if (_audioPlayer.hasNext) {
       // Let just_audio handle it automatically
+      // sequenceStateStream will update our index
       return;
     }
 

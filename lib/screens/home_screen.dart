@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/liked_songs_provider.dart';
 import '../constants/app_colors.dart';
+import '../widgets/typing_animation.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -105,59 +106,54 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
-            // Liked Songs Card (if there are liked songs)
-            if (likedSongsProvider.count > 0)
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Card(
-                    color: AppColors.accentColor,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+            // Made by bhvym - Typing Animation
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 8.0,
+                ),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24.0,
+                    vertical: 12.0,
+                  ),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.blue[900]!, Colors.blue[700]!],
                     ),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(12),
-                      onTap: () {
-                        // Navigate to library
-                        DefaultTabController.of(context).animateTo(2);
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.favorite,
-                              color: Colors.white,
-                              size: 32,
-                            ),
-                            const SizedBox(width: 16),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Liked Songs',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                Text(
-                                  '${likedSongsProvider.count} songs',
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.white70,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.blue.withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
                       ),
+                    ],
+                  ),
+                  child: Center(
+                    child: TypingAnimation(
+                      texts: const [
+                        'Hey there!',
+                        'Fuck spotify',
+                        'Enjoy',
+                        'made by bhvym',
+                      ],
+                      textStyle: const TextStyle(
+                        fontSize: 16,
+                        color: Colors.white,
+                        fontFamily: 'Courier',
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 1.2,
+                      ),
+                      typingSpeed: const Duration(milliseconds: 100),
+                      deletingSpeed: const Duration(milliseconds: 50),
+                      pauseDuration: const Duration(seconds: 2),
                     ),
                   ),
                 ),
               ),
+            ),
 
             // Changelog Section Header
             const SliverToBoxAdapter(

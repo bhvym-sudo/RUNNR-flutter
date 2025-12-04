@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:palette_generator/palette_generator.dart';
 import '../providers/player_provider.dart';
 import '../services/audio_player_service.dart';
+import '../services/download_service.dart';
 import '../constants/app_colors.dart';
 
 class FullPlayerScreen extends StatefulWidget {
@@ -73,6 +74,112 @@ class _FullPlayerScreenState extends State<FullPlayerScreen> {
     final minutes = duration.inMinutes;
     final seconds = duration.inSeconds % 60;
     return '$minutes:${seconds.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _downloadSong(BuildContext context, dynamic song) async {
+    // Use a ValueNotifier to update progress across the async gap
+    final progressNotifier = ValueNotifier<double>(0.0);
+    final isDownloadingNotifier = ValueNotifier<bool>(true);
+
+    // Show progress dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => ValueListenableBuilder<bool>(
+        valueListenable: isDownloadingNotifier,
+        builder: (context, isDownloading, child) {
+          return ValueListenableBuilder<double>(
+            valueListenable: progressNotifier,
+            builder: (context, progress, child) {
+              return Dialog(
+                backgroundColor: const Color(0xFF1E202E),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isDownloading ? Icons.download : Icons.check_circle,
+                        size: 48,
+                        color: isDownloading
+                            ? AppColors.accentColor
+                            : Colors.green,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        isDownloading ? 'Downloading...' : 'Download Complete!',
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      if (isDownloading) ...[
+                        LinearProgressIndicator(
+                          value: progress,
+                          backgroundColor: Colors.grey[800],
+                          valueColor: const AlwaysStoppedAnimation<Color>(
+                            AppColors.accentColor,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '${(progress * 100).toStringAsFixed(0)}%',
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ] else ...[
+                        Text(
+                          'Saved to Downloads folder',
+                          style: TextStyle(
+                            color: Colors.grey[400],
+                            fontSize: 14,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: () => Navigator.pop(dialogContext),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.accentColor,
+                          ),
+                          child: const Text('OK'),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+
+    // Start download
+    await DownloadService.downloadSong(
+      song,
+      onProgress: (p) {
+        progressNotifier.value = p;
+      },
+      onComplete: () {
+        isDownloadingNotifier.value = false;
+      },
+      onError: (error) {
+        if (context.mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(error), backgroundColor: Colors.red[900]),
+          );
+        }
+      },
+    );
   }
 
   @override
@@ -357,16 +464,7 @@ class _FullPlayerScreenState extends State<FullPlayerScreen> {
                           icon: const Icon(Icons.download),
                           color: Colors.white70,
                           iconSize: 28,
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: const Text(
-                                  'Download feature coming soon!',
-                                ),
-                                backgroundColor: Colors.grey[900],
-                              ),
-                            );
-                          },
+                          onPressed: () => _downloadSong(context, currentSong),
                         ),
 
                         // Repeat button (3 states: off, playlist, one)

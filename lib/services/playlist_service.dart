@@ -58,10 +58,8 @@ class PlaylistService {
 
       // Sort by updated date (most recent first)
       playlists.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-      print('DEBUG: Loaded ${playlists.length} playlists');
       return playlists;
     } catch (e) {
-      print('DEBUG ERROR: $e');
       return [];
     }
   }
@@ -78,7 +76,6 @@ class PlaylistService {
       }
       return null;
     } catch (e) {
-      print('DEBUG ERROR getting playlist: $e');
       return null;
     }
   }
@@ -103,11 +100,8 @@ class PlaylistService {
       );
 
       final playlistData = playlist.toJson();
-      print('DEBUG: Creating playlist with ID: ${playlist.id}');
-      print('DEBUG: Playlist data: $playlistData');
       await _box!.put(playlist.id, playlistData);
       await _box!.flush(); // Force write to disk
-      print('DEBUG: Playlist saved, box keys: ${_box!.keys.toList()}');
       return playlist;
     } catch (e) {
       rethrow;

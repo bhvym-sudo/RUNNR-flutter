@@ -52,6 +52,7 @@ dependencies:
   # Network
   http: ^1.2.2
   cached_network_image: ^3.4.1
+  dio: ^5.7.0
   
   # Permissions
   permission_handler: ^11.3.1

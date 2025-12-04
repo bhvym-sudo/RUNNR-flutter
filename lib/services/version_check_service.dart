@@ -24,8 +24,6 @@ class VersionCheckService {
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final url = Uri.parse('$_versionUrl?ref=main&t=$timestamp');
 
-      print('Fetching from GitHub API: $url');
-
       final response = await http
           .get(
             url,
@@ -44,14 +42,10 @@ class VersionCheckService {
         final cleanBase64 = base64Content.replaceAll('\n', '');
         final decodedBytes = base64.decode(cleanBase64);
         final version = utf8.decode(decodedBytes).trim();
-        print('Decoded version from GitHub API: $version');
         return version;
-      } else {
-        print('HTTP error: ${response.statusCode}');
-      }
+      } else {}
       return null;
     } catch (e) {
-      print('Error fetching version: $e');
       return null;
     }
   }
@@ -62,22 +56,10 @@ class VersionCheckService {
       final currentVersion = await getCurrentVersion();
       final latestVersion = await getLatestVersion();
 
-      print('DEBUG VERSION CHECK:');
-      print('Current version: $currentVersion');
-      print('Latest version: $latestVersion');
+      if (latestVersion == null) return false;
 
-      if (latestVersion == null) {
-        print('Latest version is null, no update required');
-        return false;
-      }
-
-      final comparison = _compareVersions(currentVersion, latestVersion);
-      print('Version comparison result: $comparison');
-      print('Update required: ${comparison < 0}');
-
-      return comparison < 0;
+      return _compareVersions(currentVersion, latestVersion) < 0;
     } catch (e) {
-      print('Error checking update: $e');
       return false;
     }
   }
