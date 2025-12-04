@@ -4,6 +4,7 @@ import '../providers/liked_songs_provider.dart';
 import '../providers/player_provider.dart';
 import '../widgets/song_tile.dart';
 import '../constants/app_colors.dart';
+import 'playlists_screen.dart';
 
 class LibraryScreen extends StatelessWidget {
   const LibraryScreen({super.key});
@@ -20,6 +21,52 @@ class LibraryScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Playlists Button
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const PlaylistsScreen(),
+                    ),
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.cardBg,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(
+                        Icons.playlist_play,
+                        color: AppColors.accentColor,
+                        size: 32,
+                      ),
+                      SizedBox(width: 16),
+                      Text(
+                        'Your Playlists',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Spacer(),
+                      Icon(
+                        Icons.arrow_forward_ios,
+                        color: Colors.white54,
+                        size: 16,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
             // Header
             Padding(
               padding: const EdgeInsets.all(16.0),

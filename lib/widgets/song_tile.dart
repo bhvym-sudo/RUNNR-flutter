@@ -4,17 +4,20 @@ import 'package:provider/provider.dart';
 import '../models/song_model.dart';
 import '../providers/liked_songs_provider.dart';
 import '../constants/app_colors.dart';
+import 'add_to_playlist_dialog.dart';
 
 class SongTile extends StatelessWidget {
   final SongModel song;
   final VoidCallback onTap;
   final bool showLikeButton;
+  final bool showMenuButton;
 
   const SongTile({
     super.key,
     required this.song,
     required this.onTap,
     this.showLikeButton = true,
+    this.showMenuButton = true,
   });
 
   @override
@@ -61,41 +64,104 @@ class SongTile extends StatelessWidget {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
-      trailing: showLikeButton
-          ? IconButton(
-              icon: Icon(
-                isLiked ? Icons.favorite : Icons.favorite_border,
-                color: isLiked ? AppColors.likeColor : Colors.white70,
-              ),
-              onPressed: () async {
-                try {
-                  await likedSongsProvider.toggleLike(song);
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          isLiked
-                              ? 'Removed from liked songs'
-                              : 'Added to liked songs',
-                        ),
-                        duration: const Duration(seconds: 1),
-                        backgroundColor: Colors.grey[900],
+      trailing: showMenuButton
+          ? Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (showLikeButton)
+                  IconButton(
+                    icon: Icon(
+                      isLiked ? Icons.favorite : Icons.favorite_border,
+                      color: isLiked ? AppColors.likeColor : Colors.white70,
+                    ),
+                    onPressed: () async {
+                      try {
+                        await likedSongsProvider.toggleLike(song);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                isLiked
+                                    ? 'Removed from liked songs'
+                                    : 'Added to liked songs',
+                              ),
+                              duration: const Duration(seconds: 1),
+                              backgroundColor: Colors.grey[900],
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Error: $e'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      }
+                    },
+                  ),
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert, color: Colors.white70),
+                  onSelected: (value) {
+                    if (value == 'add_to_playlist') {
+                      showDialog(
+                        context: context,
+                        builder: (context) => AddToPlaylistDialog(song: song),
+                      );
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'add_to_playlist',
+                      child: Row(
+                        children: [
+                          Icon(Icons.playlist_add, size: 20),
+                          SizedBox(width: 12),
+                          Text('Add to playlist'),
+                        ],
                       ),
-                    );
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Error: $e'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
-                }
-              },
+                    ),
+                  ],
+                ),
+              ],
             )
-          : null,
+          : (showLikeButton
+                ? IconButton(
+                    icon: Icon(
+                      isLiked ? Icons.favorite : Icons.favorite_border,
+                      color: isLiked ? AppColors.likeColor : Colors.white70,
+                    ),
+                    onPressed: () async {
+                      try {
+                        await likedSongsProvider.toggleLike(song);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                isLiked
+                                    ? 'Removed from liked songs'
+                                    : 'Added to liked songs',
+                              ),
+                              duration: const Duration(seconds: 1),
+                              backgroundColor: Colors.grey[900],
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Error: $e'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      }
+                    },
+                  )
+                : null),
       onTap: onTap,
     );
   }

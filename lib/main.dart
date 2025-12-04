@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'services/liked_songs_service_hive.dart';
+import 'services/playlist_service.dart';
 import 'providers/player_provider.dart';
 import 'providers/liked_songs_provider.dart';
+import 'providers/playlist_provider.dart';
 import 'screens/home_screen.dart';
 import 'screens/search_screen.dart';
 import 'screens/library_screen.dart';
@@ -13,8 +16,10 @@ import 'widgets/mini_player.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Hive for local storage
+  // Initialize Hive for local storage (must be called first)
+  await Hive.initFlutter();
   await LikedSongsServiceHive.initialize();
+  await PlaylistService.initialize();
 
   // Request notification permission for Android 13+
   if (await Permission.notification.isDenied) {
@@ -57,6 +62,14 @@ class RunnrApp extends StatelessWidget {
             // Link the providers so liked songs can update player's playlist
             likedSongsProvider!.setPlayerProvider(playerProvider);
             return likedSongsProvider;
+          },
+        ),
+        ChangeNotifierProxyProvider<PlayerProvider, PlaylistProvider>(
+          create: (context) => PlaylistProvider()..loadPlaylists(),
+          update: (context, playerProvider, playlistProvider) {
+            // Link the providers so playlists can update player's playlist
+            playlistProvider!.setPlayerProvider(playerProvider);
+            return playlistProvider;
           },
         ),
       ],
