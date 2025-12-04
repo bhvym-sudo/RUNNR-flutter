@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'services/liked_songs_service_hive.dart';
 import 'providers/player_provider.dart';
 import 'providers/liked_songs_provider.dart';
 import 'screens/home_screen.dart';
@@ -11,6 +12,9 @@ import 'widgets/mini_player.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Hive for local storage
+  await LikedSongsServiceHive.initialize();
 
   // Request notification permission for Android 13+
   if (await Permission.notification.isDenied) {
@@ -47,8 +51,13 @@ class RunnrApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => PlayerProvider()),
-        ChangeNotifierProvider(
-          create: (_) => LikedSongsProvider()..loadLikedSongs(),
+        ChangeNotifierProxyProvider<PlayerProvider, LikedSongsProvider>(
+          create: (context) => LikedSongsProvider()..loadLikedSongs(),
+          update: (context, playerProvider, likedSongsProvider) {
+            // Link the providers so liked songs can update player's playlist
+            likedSongsProvider!.setPlayerProvider(playerProvider);
+            return likedSongsProvider;
+          },
         ),
       ],
       child: MaterialApp(
@@ -61,11 +70,9 @@ class RunnrApp extends StatelessWidget {
             primary: accentColor,
             secondary: accentHover,
             surface: cardBg,
-            background: night,
             onPrimary: Colors.white,
             onSecondary: Colors.white,
             onSurface: Colors.white,
-            onBackground: Colors.white,
           ),
           scaffoldBackgroundColor: night,
           appBarTheme: const AppBarTheme(

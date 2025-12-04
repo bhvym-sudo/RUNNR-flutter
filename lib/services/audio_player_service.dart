@@ -81,15 +81,8 @@ class AudioPlayerService {
         }
       });
 
-      // Listen to track changes (for queue-based playback)
-      _audioPlayer.currentIndexStream.listen((index) {
-        if (index != null &&
-            index != _currentIndex &&
-            index < _playlist.length) {
-          _currentIndex = index;
-          _notifyUIAndUpdateNotification();
-        }
-      });
+      // Note: We don't listen to currentIndexStream because our queue
+      // is built dynamically and indices don't match playlist indices
 
       _isInitialized = true;
     } catch (e) {
@@ -133,19 +126,130 @@ class AudioPlayerService {
   }
 
   /// Load entire playlist as queue (enables autoplay)
+  /// OPTIMIZED: Load current song first, start playing, then load neighbors
   Future<void> _loadPlaylistAsQueue() async {
     try {
-      final audioSources = <AudioSource>[];
+      final List<AudioSource> audioSources = [];
 
-      // Load stream URLs for all songs in order
-      for (var i = 0; i < _playlist.length; i++) {
+      // STEP 1: Load ONLY current song for instant playback
+      final currentSong = _playlist[_currentIndex];
+      final currentStreamUrl = await JioSaavnService.getStreamUrl(
+        currentSong.encryptedMediaUrl,
+      );
+
+      if (currentStreamUrl == null || currentStreamUrl.isEmpty) {
+        throw Exception('Could not load current song');
+      }
+
+      audioSources.add(
+        AudioSource.uri(
+          Uri.parse(currentStreamUrl),
+          headers: {
+            'User-Agent':
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Referer': 'https://www.jiosaavn.com/',
+            'Origin': 'https://www.jiosaavn.com',
+            'Accept': '*/*',
+          },
+          tag: currentSong,
+        ),
+      );
+
+      // STEP 2: Create queue and START PLAYING IMMEDIATELY
+      final concatenating = ConcatenatingAudioSource(children: audioSources);
+
+      await _audioPlayer.setAudioSource(
+        concatenating,
+        initialIndex: 0, // Always 0 since current song is first
+        initialPosition: Duration.zero,
+      );
+      await _audioPlayer.play();
+
+      // STEP 3: Load next song quickly for autoplay
+      if (_currentIndex + 1 < _playlist.length) {
+        try {
+          final nextSong = _playlist[_currentIndex + 1];
+          final nextStreamUrl = await JioSaavnService.getStreamUrl(
+            nextSong.encryptedMediaUrl,
+          );
+          if (nextStreamUrl != null && nextStreamUrl.isNotEmpty) {
+            await concatenating.add(
+              AudioSource.uri(
+                Uri.parse(nextStreamUrl),
+                headers: {
+                  'User-Agent':
+                      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                  'Referer': 'https://www.jiosaavn.com/',
+                  'Origin': 'https://www.jiosaavn.com',
+                  'Accept': '*/*',
+                },
+                tag: nextSong,
+              ),
+            );
+          }
+        } catch (e) {
+          // Next song failed, continue
+        }
+      }
+
+      // STEP 4: Load remaining songs in background (non-blocking)
+      _loadRemainingQueueInBackground(concatenating);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Background loader for remaining songs in queue
+  Future<void> _loadRemainingQueueInBackground(
+    ConcatenatingAudioSource concatenating,
+  ) async {
+    // Track what we've loaded (current and possibly next)
+    final Set<int> loadedIndices = {_currentIndex};
+    if (_currentIndex + 1 < _playlist.length) {
+      loadedIndices.add(_currentIndex + 1);
+    }
+
+    // PRIORITY 1: Load previous song for back button
+    if (_currentIndex > 0) {
+      try {
+        final prevSong = _playlist[_currentIndex - 1];
+        final prevStreamUrl = await JioSaavnService.getStreamUrl(
+          prevSong.encryptedMediaUrl,
+        );
+        if (prevStreamUrl != null && prevStreamUrl.isNotEmpty) {
+          await concatenating.insert(
+            0,
+            AudioSource.uri(
+              Uri.parse(prevStreamUrl),
+              headers: {
+                'User-Agent':
+                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Referer': 'https://www.jiosaavn.com/',
+                'Origin': 'https://www.jiosaavn.com',
+                'Accept': '*/*',
+              },
+              tag: prevSong,
+            ),
+          );
+          loadedIndices.add(_currentIndex - 1);
+        }
+      } catch (e) {
+        // Skip on error
+      }
+    }
+
+    // PRIORITY 2: Load songs after next for continuous playback
+    for (var i = _currentIndex + 2; i < _playlist.length; i++) {
+      if (loadedIndices.contains(i)) continue;
+
+      try {
         final song = _playlist[i];
         final streamUrl = await JioSaavnService.getStreamUrl(
           song.encryptedMediaUrl,
         );
 
         if (streamUrl != null && streamUrl.isNotEmpty) {
-          audioSources.add(
+          await concatenating.add(
             AudioSource.uri(
               Uri.parse(streamUrl),
               headers: {
@@ -158,28 +262,43 @@ class AudioPlayerService {
               tag: song,
             ),
           );
+          loadedIndices.add(i);
         }
+      } catch (e) {
+        continue;
       }
+    }
 
-      if (audioSources.isNotEmpty) {
-        // Create concatenating source (queue)
-        final concatenating = ConcatenatingAudioSource(children: audioSources);
+    // PRIORITY 3: Load songs before previous (lowest priority)
+    for (var i = _currentIndex - 2; i >= 0; i--) {
+      if (loadedIndices.contains(i)) continue;
 
-        // Make sure currentIndex is valid
-        final validIndex = _currentIndex.clamp(0, audioSources.length - 1);
-
-        // Set audio source with correct initial index
-        await _audioPlayer.setAudioSource(
-          concatenating,
-          initialIndex: validIndex,
-          initialPosition: Duration.zero,
+      try {
+        final song = _playlist[i];
+        final streamUrl = await JioSaavnService.getStreamUrl(
+          song.encryptedMediaUrl,
         );
 
-        // Start playback
-        await _audioPlayer.play();
+        if (streamUrl != null && streamUrl.isNotEmpty) {
+          await concatenating.insert(
+            0,
+            AudioSource.uri(
+              Uri.parse(streamUrl),
+              headers: {
+                'User-Agent':
+                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Referer': 'https://www.jiosaavn.com/',
+                'Origin': 'https://www.jiosaavn.com',
+                'Accept': '*/*',
+              },
+              tag: song,
+            ),
+          );
+          loadedIndices.add(i);
+        }
+      } catch (e) {
+        continue;
       }
-    } catch (e) {
-      rethrow;
     }
   }
 
@@ -447,6 +566,7 @@ class AudioPlayerService {
   void updatePlaylist(List<SongModel> newPlaylist) {
     // Store the currently playing song
     final currentlyPlayingSong = currentSong;
+    final oldPlaylistLength = _playlist.length;
 
     _playlist = newPlaylist;
     _originalPlaylist = List.from(newPlaylist);
@@ -461,6 +581,11 @@ class AudioPlayerService {
       if (newIndex != -1) {
         // Song is still in the playlist
         _currentIndex = newIndex;
+
+        // If songs were added after current position, load them in background
+        if (newPlaylist.length > oldPlaylistLength) {
+          _loadNewlyAddedSongsInBackground();
+        }
       } else {
         // Song was removed from playlist
         // Adjust current index if needed
@@ -479,6 +604,56 @@ class AudioPlayerService {
 
     // Notify UI of the update (important!)
     _notifyUIAndUpdateNotification();
+  }
+
+  /// Load newly added songs to the queue in background
+  Future<void> _loadNewlyAddedSongsInBackground() async {
+    // Get the current audio source
+    final audioSource = _audioPlayer.audioSource;
+    if (audioSource is! ConcatenatingAudioSource) return;
+
+    // Get currently loaded song URLs from the queue
+    final Set<String> loadedUrls = {};
+    if (_audioPlayer.sequence != null) {
+      for (var source in _audioPlayer.sequence!) {
+        final tag = source.tag;
+        if (tag is SongModel) {
+          loadedUrls.add(tag.encryptedMediaUrl);
+        }
+      }
+    }
+
+    // Load songs that are not yet in the queue
+    for (var song in _playlist) {
+      if (loadedUrls.contains(song.encryptedMediaUrl)) continue;
+
+      try {
+        final streamUrl = await JioSaavnService.getStreamUrl(
+          song.encryptedMediaUrl,
+        );
+
+        if (streamUrl != null && streamUrl.isNotEmpty) {
+          final source = AudioSource.uri(
+            Uri.parse(streamUrl),
+            headers: {
+              'User-Agent':
+                  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+              'Referer': 'https://www.jiosaavn.com/',
+              'Origin': 'https://www.jiosaavn.com',
+              'Accept': '*/*',
+            },
+            tag: song,
+          );
+
+          // Add to the end of the queue
+          await audioSource.add(source);
+          loadedUrls.add(song.encryptedMediaUrl);
+        }
+      } catch (e) {
+        // Skip songs that fail to load
+        continue;
+      }
+    }
   }
 
   /// Check if has next song

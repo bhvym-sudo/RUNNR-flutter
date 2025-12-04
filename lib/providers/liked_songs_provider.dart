@@ -1,10 +1,58 @@
 import 'package:flutter/foundation.dart';
 import '../models/song_model.dart';
-import '../services/liked_songs_service.dart';
+import '../services/liked_songs_service_hive.dart';
+import 'player_provider.dart';
 
 class LikedSongsProvider extends ChangeNotifier {
   List<SongModel> _likedSongs = [];
   bool _isLoading = false;
+  PlayerProvider? _playerProvider;
+
+  /// Set player provider reference for playlist synchronization
+  void setPlayerProvider(PlayerProvider playerProvider) {
+    _playerProvider = playerProvider;
+  }
+
+  /// Check if currently playing from liked songs playlist
+  bool _isPlayingFromLikedSongs() {
+    if (_playerProvider == null) return false;
+
+    final currentSong = _playerProvider!.currentSong;
+    final currentPlaylist = _playerProvider!.currentPlaylist;
+
+    if (currentSong == null || currentPlaylist.isEmpty || _likedSongs.isEmpty) {
+      return false;
+    }
+
+    // If current song is not in liked songs, definitely not playing from liked songs
+    if (!_likedSongs.any(
+      (s) => s.encryptedMediaUrl == currentSong.encryptedMediaUrl,
+    )) {
+      return false;
+    }
+
+    // Check if the playlists have similar structure (first few songs match)
+    // This handles cases where user is playing from liked songs
+    final checkCount = currentPlaylist.length < 3 ? currentPlaylist.length : 3;
+    int matchCount = 0;
+
+    for (int i = 0; i < checkCount && i < _likedSongs.length; i++) {
+      if (currentPlaylist[i].encryptedMediaUrl ==
+          _likedSongs[i].encryptedMediaUrl) {
+        matchCount++;
+      }
+    }
+
+    // If at least 2 out of first 3 songs match, consider it the same playlist
+    return matchCount >= (checkCount >= 2 ? 2 : 1);
+  }
+
+  /// Update player's playlist if currently playing from liked songs
+  void _syncWithPlayer() {
+    if (_playerProvider != null && _isPlayingFromLikedSongs()) {
+      _playerProvider!.updatePlaylist(_likedSongs);
+    }
+  }
 
   List<SongModel> get likedSongs => _likedSongs;
   bool get isLoading => _isLoading;
@@ -16,7 +64,7 @@ class LikedSongsProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _likedSongs = await LikedSongsService.getLikedSongs();
+      _likedSongs = await LikedSongsServiceHive.getLikedSongs();
     } catch (e) {
       // Failed to load liked songs
     } finally {
@@ -38,14 +86,17 @@ class LikedSongsProvider extends ChangeNotifier {
       final isCurrentlyLiked = isLiked(song);
 
       if (isCurrentlyLiked) {
-        await LikedSongsService.removeSong(song);
+        await LikedSongsServiceHive.removeLikedSong(song);
         _likedSongs.removeWhere(
           (s) => s.encryptedMediaUrl == song.encryptedMediaUrl,
         );
       } else {
-        await LikedSongsService.addSong(song);
+        await LikedSongsServiceHive.addLikedSong(song);
         _likedSongs.add(song);
       }
+
+      // Sync with player if playing from liked songs
+      _syncWithPlayer();
 
       notifyListeners();
       return !isCurrentlyLiked; // Return new like status
@@ -58,8 +109,12 @@ class LikedSongsProvider extends ChangeNotifier {
   Future<void> addSong(SongModel song) async {
     if (!isLiked(song)) {
       try {
-        await LikedSongsService.addSong(song);
+        await LikedSongsServiceHive.addLikedSong(song);
         _likedSongs.add(song);
+
+        // Sync with player if playing from liked songs
+        _syncWithPlayer();
+
         notifyListeners();
       } catch (e) {
         rethrow;
@@ -70,10 +125,14 @@ class LikedSongsProvider extends ChangeNotifier {
   /// Remove a song from liked songs
   Future<void> removeSong(SongModel song) async {
     try {
-      await LikedSongsService.removeSong(song);
+      await LikedSongsServiceHive.removeLikedSong(song);
       _likedSongs.removeWhere(
         (s) => s.encryptedMediaUrl == song.encryptedMediaUrl,
       );
+
+      // Sync with player if playing from liked songs
+      _syncWithPlayer();
+
       notifyListeners();
     } catch (e) {
       rethrow;
@@ -83,7 +142,7 @@ class LikedSongsProvider extends ChangeNotifier {
   /// Clear all liked songs
   Future<void> clearAll() async {
     try {
-      await LikedSongsService.clearAll();
+      await LikedSongsServiceHive.clearAll();
       _likedSongs.clear();
       notifyListeners();
     } catch (e) {
