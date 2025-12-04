@@ -5,6 +5,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'services/liked_songs_service_hive.dart';
 import 'services/playlist_service.dart';
+import 'services/version_check_service.dart';
 import 'providers/player_provider.dart';
 import 'providers/liked_songs_provider.dart';
 import 'providers/playlist_provider.dart';
@@ -12,6 +13,7 @@ import 'screens/home_screen.dart';
 import 'screens/search_screen.dart';
 import 'screens/library_screen.dart';
 import 'widgets/mini_player.dart';
+import 'widgets/force_update_dialog.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -127,14 +129,89 @@ class MainScreen extends StatefulWidget {
   State<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
+class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   int _currentIndex = 0;
+  bool _isUpdateRequired = false;
+  String _currentVersion = '';
+  String _latestVersion = '';
 
   final List<Widget> _screens = const [
     HomeScreen(),
     SearchScreen(),
     LibraryScreen(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _checkForUpdates();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // Check for updates when app comes to foreground
+    if (state == AppLifecycleState.resumed) {
+      _checkForUpdates();
+    }
+  }
+
+  Future<void> _checkForUpdates() async {
+    try {
+      final updateRequired = await VersionCheckService.isUpdateRequired();
+
+      if (!mounted) return;
+
+      if (updateRequired) {
+        final currentVersion = await VersionCheckService.getCurrentVersion();
+        final latestVersion = await VersionCheckService.getLatestVersion();
+
+        setState(() {
+          _isUpdateRequired = true;
+          _currentVersion = currentVersion;
+          _latestVersion = latestVersion ?? '';
+        });
+
+        // Show dialog after frame is built
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && _isUpdateRequired) {
+            _showForceUpdateDialog();
+          }
+        });
+      } else {
+        // Update not required - dismiss dialog if showing
+        setState(() {
+          _isUpdateRequired = false;
+        });
+        if (mounted) {
+          Navigator.of(
+            context,
+            rootNavigator: true,
+          ).popUntil((route) => route.isFirst);
+        }
+      }
+    } catch (e) {
+      print('Error checking for updates: $e');
+    }
+  }
+
+  void _showForceUpdateDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => ForceUpdateDialog(
+        currentVersion: _currentVersion,
+        latestVersion: _latestVersion,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
