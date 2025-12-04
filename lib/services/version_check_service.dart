@@ -4,7 +4,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 /// Service to check for app updates
 class VersionCheckService {
   static const String _versionUrl =
-      'https://raw.githubusercontent.com/bhvym-sudo/RUNNR-flutter/main/version.txt';
+      'https://raw.githubusercontent.com/bhvym-sudo/RUNNR-flutter/refs/heads/main/version.txt';
 
   /// Get current app version
   static Future<String> getCurrentVersion() async {
