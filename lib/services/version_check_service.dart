@@ -19,14 +19,39 @@ class VersionCheckService {
   /// Fetch latest version from GitHub
   static Future<String?> getLatestVersion() async {
     try {
-      final response = await http
-          .get(Uri.parse(_versionUrl))
-          .timeout(const Duration(seconds: 10));
+      // Add cache-busting query parameter with random value
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final random = DateTime.now().microsecondsSinceEpoch;
+      final url = Uri.parse('$_versionUrl?cache=$timestamp&r=$random');
 
-      if (response.statusCode == 200) {
-        return response.body.trim();
+      print('Fetching from URL: $url');
+
+      // Create a fresh client to avoid caching
+      final client = http.Client();
+      try {
+        final response = await client
+            .get(
+              url,
+              headers: {
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0',
+              },
+            )
+            .timeout(const Duration(seconds: 10));
+
+        if (response.statusCode == 200) {
+          final version = response.body.trim();
+          print('Fetched version from GitHub: $version');
+          print('Response length: ${response.body.length}');
+          return version;
+        } else {
+          print('HTTP error: ${response.statusCode}');
+        }
+        return null;
+      } finally {
+        client.close();
       }
-      return null;
     } catch (e) {
       print('Error fetching version: $e');
       return null;
