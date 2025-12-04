@@ -13,6 +13,21 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final List<Map<String, dynamic>> _changelog = [
     {
+      'version': 'v2.0.0',
+      'date': 'December 2025',
+      'changes': [
+        '✨ Full playlist feature with create, edit, and delete',
+        '✨ Add/remove songs from playlists with visual feedback',
+        '✨ Swipe to delete songs from playlists',
+        '🎵 Dynamic playlist synchronization with audio player',
+        '💾 Hive-based local storage for instant data access',
+        '🔧 Fixed playlist persistence after app restart',
+        '🎨 Updated app icon and splash screen with RUNNR logo',
+        '🎯 Mini player now visible across all screens',
+        '⚡ Optimized queue loading for instant playback',
+      ],
+    },
+    {
       'version': 'v1.1.0',
       'date': 'October 2025',
       'changes': [
